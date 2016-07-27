@@ -26,7 +26,7 @@ public class ModelTexture {
 			InputStream in = new FileInputStream("res/"+filename+".png");
 			PNGDecoder decoder = new PNGDecoder(in);
 			ByteBuffer buf = ByteBuffer.allocateDirect(4*decoder.getWidth()*decoder.getHeight());
-			decoder.decode(buf, decoder.getWidth()*4, Format.BGRA);
+			decoder.decode(buf, decoder.getWidth()*4, Format.RGBA);
 			buf.flip();
 			in.close();
 			

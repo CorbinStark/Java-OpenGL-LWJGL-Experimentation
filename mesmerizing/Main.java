@@ -16,6 +16,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 
 import entities.Entity;
+import graphics.Camera;
 import graphics.Model;
 import shaders.StaticShader;
 import textures.ModelTexture;
@@ -35,6 +36,7 @@ public class Main {
 	Entity entity;
 	ModelTexture texture;
 	StaticShader shader;
+	static Camera cam = new Camera();
 	
 	private static GLFWErrorCallback errorCallback = GLFWErrorCallback.createPrint(System.err);
 	
@@ -42,6 +44,45 @@ public class Main {
         public void invoke(long window, int key, int scancode, int action, int mods) {
             if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
                 glfwSetWindowShouldClose(window, true);
+            }
+            if(action == GLFW_PRESS) {
+            	if(key == GLFW_KEY_RIGHT || key == GLFW_KEY_D) {
+            		cam.right = true;
+            	}
+            	if(key == GLFW_KEY_LEFT || key == GLFW_KEY_A) {
+            		cam.left = true;
+            	}
+            	if(key == GLFW_KEY_UP || key == GLFW_KEY_W) {
+            		cam.forward = true;
+            	}
+            	if(key == GLFW_KEY_DOWN || key == GLFW_KEY_S) {
+            		cam.back = true;
+            	}
+            	if(key == GLFW_KEY_SPACE) {
+            		cam.up = true;
+            	}
+            	if(key == GLFW_KEY_LEFT_CONTROL) {
+            		cam.down = true;
+            	}
+            } else if(action == GLFW_RELEASE) {
+            	if(key == GLFW_KEY_RIGHT || key == GLFW_KEY_D) {
+            		cam.right = false;
+            	}
+            	if(key == GLFW_KEY_LEFT || key == GLFW_KEY_A) {
+            		cam.left = false;
+            	}
+            	if(key == GLFW_KEY_UP || key == GLFW_KEY_W) {
+            		cam.forward = false;
+            	}
+            	if(key == GLFW_KEY_DOWN || key == GLFW_KEY_S) {
+            		cam.back = false;
+            	}
+            	if(key == GLFW_KEY_SPACE) {
+            		cam.up = false;
+            	}
+            	if(key == GLFW_KEY_LEFT_CONTROL) {
+            		cam.down = false;
+            	}
             }
         }
     };
@@ -67,11 +108,9 @@ public class Main {
 
     	shader = new StaticShader();
     	createProjectionMatrix();
-    	System.out.println(PROJECTION.m00);
     	shader.start();
     	shader.loadProjectionMatrix(PROJECTION);
     	shader.stop();
-    	shader.start();
     	
     	System.err.println("GL_VENDOR: " + GL11.glGetString(GL11.GL_VENDOR));
         System.err.println("GL_RENDERER: " + GL11.glGetString(GL11.GL_RENDERER));
@@ -91,32 +130,16 @@ public class Main {
     	glfwSetKeyCallback(window, keyCallback);
     	IntBuffer width = BufferUtils.createIntBuffer(1);
     	IntBuffer height = BufferUtils.createIntBuffer(1);
-    	
-    	float[] vertices = {
-    			  -0.5f, 0.5f, 0,
-    			  -0.5f, -0.5f, 0,
-    			  0.5f, -0.5f, 0,
-    			  0.5f, 0.5f, 0f
-    			};
-    			  
-    			int[] indices = {
-    			  0,1,3,
-    			  3,1,2
-    			};
     			
-    			float[] textureCoords = {
-    					0, 0,
-    					0, 1,
-    					1, 1,
-    					1, 0
-    			};
-    			
-    	texture = new ModelTexture("textest");
-		model = new Model(vertices, indices, textureCoords, texture);
-		entity = new Entity(model, new Vector3f(0, 0, -1), new Vector3f(0, 0, 0), 1f);
+    	texture = new ModelTexture("stallTexture");
+		model = new Model("stall", texture);
+		entity = new Entity(model, new Vector3f(0, 0, -5), new Vector3f(0, 0, 0), .1f);
     	
+		GL11.glEnable(GL11.GL_DEPTH_TEST);
     	while(glfwWindowShouldClose(window) != true) {
     		float ratio;
+    		shader.start();
+    		shader.loadViewMatrix(cam);
     		
     		glfwGetFramebufferSize(window, width, height);
     		ratio = width.get() / (float) height.get();
@@ -124,6 +147,7 @@ public class Main {
     		height.rewind();
     		glViewport(0, 0, width.get(), height.get());
     		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    		glMatrixMode(GL_PROJECTION_MATRIX);
     		
     		//glOrtho(-ratio, ratio, -1f, 1f, 1f, -1f);
     		glOrtho(0, 0, WIDTH, HEIGHT, 1, -1);
@@ -133,6 +157,8 @@ public class Main {
 
             glfwSwapBuffers(window);
             glfwPollEvents();
+            
+            shader.stop();
 
             width.flip();
             height.flip();
@@ -155,8 +181,9 @@ public class Main {
     }
     
     private void update() {
-    	entity.increasePosition(0.003f, 0, -0.008f);
-    	entity.increaseRotation(0, 0, 0);
+    	cam.update();
+    	//entity.increasePosition(0.003f, 0, -0.008f);
+    	entity.increaseRotation(0, 1, 0);
     }
     
     private void cleanup() {
