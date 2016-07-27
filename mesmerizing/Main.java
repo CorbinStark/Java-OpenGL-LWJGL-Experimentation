@@ -6,6 +6,8 @@ import static org.lwjgl.system.MemoryUtil.*;
 
 import java.nio.IntBuffer;
 
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
@@ -13,6 +15,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 
+import entities.Entity;
 import graphics.Model;
 import shaders.StaticShader;
 import textures.ModelTexture;
@@ -20,10 +23,16 @@ import textures.ModelTexture;
 
 public class Main {
 	
+	public static final float FOV = 80;
+	public static final float NEAR_PLANE = 0.1f;
+	public static final float FAR_PLANE = 1000.0f;
 	public static final int WIDTH = 800;
 	public static final int HEIGHT = 600;
 	
+	public static Matrix4f PROJECTION;
+	
 	Model model;
+	Entity entity;
 	ModelTexture texture;
 	StaticShader shader;
 	
@@ -57,11 +66,17 @@ public class Main {
     	GL.createCapabilities();
 
     	shader = new StaticShader();
+    	createProjectionMatrix();
+    	System.out.println(PROJECTION.m00);
+    	shader.start();
+    	shader.loadProjectionMatrix(PROJECTION);
+    	shader.stop();
     	shader.start();
     	
     	System.err.println("GL_VENDOR: " + GL11.glGetString(GL11.GL_VENDOR));
         System.err.println("GL_RENDERER: " + GL11.glGetString(GL11.GL_RENDERER));
         System.err.println("GL_VERSION: " + GL11.glGetString(GL11.GL_VERSION));
+        System.err.println("LWJGL_VERSION: " + org.lwjgl.Version.getVersion());
         System.err.println("OS: " + System.getProperty("os.name"));
         System.err.println("Available Processors:" + java.lang.Runtime.getRuntime().availableProcessors());
         System.err.println("Total Memory: " + java.lang.Runtime.getRuntime().totalMemory());
@@ -98,6 +113,7 @@ public class Main {
     			
     	texture = new ModelTexture("textest");
 		model = new Model(vertices, indices, textureCoords, texture);
+		entity = new Entity(model, new Vector3f(0, 0, -1), new Vector3f(0, 0, 0), 1f);
     	
     	while(glfwWindowShouldClose(window) != true) {
     		float ratio;
@@ -109,16 +125,10 @@ public class Main {
     		glViewport(0, 0, width.get(), height.get());
     		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     		
-    		glMatrixMode(GL_PROJECTION);
-    		glLoadIdentity();
     		//glOrtho(-ratio, ratio, -1f, 1f, 1f, -1f);
     		glOrtho(0, 0, WIDTH, HEIGHT, 1, -1);
-    		glMatrixMode(GL_MODELVIEW);
     		
-    		glLoadIdentity();
-    		glRotatef((float) glfwGetTime() * 50f, 0f, 0f, 1f);
-    		
-    		draw();
+    		draw(shader);
     		update();
 
             glfwSwapBuffers(window);
@@ -140,17 +150,33 @@ public class Main {
     	Main main = new Main();
     }
     
-    private void draw() {
-    	model.draw();
+    private void draw(StaticShader shader) {
+    	entity.draw(shader);
     }
     
     private void update() {
-    	
+    	entity.increasePosition(0.003f, 0, -0.008f);
+    	entity.increaseRotation(0, 0, 0);
     }
     
     private void cleanup() {
     	shader.cleanup();
-    	model.cleanup();
+    	entity.cleanup();
+    }
+    
+    private void createProjectionMatrix() {
+    	float aspectRatio = WIDTH / HEIGHT;
+    	float y_scale = (float)((1f / Math.tan(Math.toRadians(FOV / 2f))) * aspectRatio);
+    	float x_scale = y_scale / aspectRatio;
+    	float frustrum_length = FAR_PLANE - NEAR_PLANE;
+    	
+    	PROJECTION = new Matrix4f();
+    	PROJECTION.m00 = x_scale;
+    	PROJECTION.m11 = y_scale;
+    	PROJECTION.m22 = -((FAR_PLANE + NEAR_PLANE) / frustrum_length);
+    	PROJECTION.m23 = -1;
+    	PROJECTION.m32 = -((2 * NEAR_PLANE * FAR_PLANE) / frustrum_length);
+    	PROJECTION.m33 = 0;
     }
 
 }

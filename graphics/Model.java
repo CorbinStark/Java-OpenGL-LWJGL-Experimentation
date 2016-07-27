@@ -8,13 +8,18 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 
+import shaders.Shader;
+import shaders.StaticShader;
 import textures.ModelTexture;
+import util.Maths;
 import util.RenderUtils;
 
 public class Model {
@@ -24,6 +29,11 @@ public class Model {
 	private List<Integer> textures = new ArrayList<Integer>();
 	private int vertexCount;
 	private ModelTexture texture;
+	
+
+	private Vector3f position;
+	private Vector3f rotation;
+	private float scale;
 	
 	public Model(float[] positions, int[] indices, float[] textureCoords, ModelTexture texture) {
 		this.texture = texture;
@@ -59,21 +69,60 @@ public class Model {
 		GL30.glBindVertexArray(0);
 	}
 	
-	public void draw() {
+	public void draw(StaticShader shader) {
 		GL30.glBindVertexArray(vaos.get(0));
 		GL20.glEnableVertexAttribArray(0);
 		GL20.glEnableVertexAttribArray(1);
+		Matrix4f transformationMatrix = Maths.createTransformationMatrix(position, rotation.x, rotation.y, rotation.z, scale);
+		shader.loadTransformationMatrix(transformationMatrix);
 		GL13.glActiveTexture(GL13.GL_TEXTURE0);
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.getID());
 		GL11.glDrawElements(GL11.GL_TRIANGLES, vertexCount, GL11.GL_UNSIGNED_INT, 0);
-		//GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, vertexCount);
 		GL20.glDisableVertexAttribArray(0);
 		GL20.glDisableVertexAttribArray(1);
 		unbindVAO();
 	}
 	
+	public void increasePosition(float dx, float dy, float dz) {
+		position.x += dx;
+		position.y += dy;
+		position.z += dz;
+	}
+	
+	public void increaseRotation(float dx, float dy, float dz) {
+		rotation.x += dx;
+		rotation.y += dy;
+		rotation.z += dz;
+	}
+
+	public Vector3f getPosition() {
+		return position;
+	}
+
+	public void setPosition(Vector3f position) {
+		this.position = position;
+	}
+
+	public Vector3f getRotation() {
+		return rotation;
+	}
+
+	public void setRotation(Vector3f rotation) {
+		this.rotation = rotation;
+	}
+
+	public float getScale() {
+		return scale;
+	}
+
+	public void setScale(float scale) {
+		this.scale = scale;
+	}
+	
 	public void cleanup() {
-		GL30.glDeleteVertexArrays(vaos.get(0));
+		for(int vao:vaos) {
+			GL30.glDeleteVertexArrays(vao);
+		}
 		for(int vbo:vbos) {
 			GL15.glDeleteBuffers(vbo);
 		}
