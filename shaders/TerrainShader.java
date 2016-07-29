@@ -10,10 +10,9 @@ import graphics.LightSource;
 import graphics.Model;
 import util.Maths;
 
-public class StaticShader extends Shader {
-	
-	private static final String VERTEX_FILE = "src/shaders/vertexShader.txt";
-	private static final String FRAGMENT_FILE = "src/shaders/fragmentShader.txt";
+public class TerrainShader extends Shader {
+	private static final String VERTEX_FILE = "src/shaders/terrainVertexShader.txt";
+	private static final String FRAGMENT_FILE = "src/shaders/terrainFragmentShader.txt";
 	
 	private int location_tranformation_matrix;
 	private int location_projection_matrix;
@@ -22,10 +21,14 @@ public class StaticShader extends Shader {
 	private int location_light_color;
 	private int location_shine_damper;
 	private int location_reflectivity;
-	private int location_use_fake_lighting;
 	private int location_sky_color;
+	private int location_background_texture;
+	private int location_rTexture;
+	private int location_gTexture;
+	private int location_bTexture;
+	private int location_blendmap;
 
-	public StaticShader() {
+	public TerrainShader() {
 		super(VERTEX_FILE, FRAGMENT_FILE);
 	}
 
@@ -43,16 +46,24 @@ public class StaticShader extends Shader {
 		location_light_color = super.getUniformLocation("lightColor");
 		location_shine_damper = super.getUniformLocation("shineDamper");
 		location_reflectivity = super.getUniformLocation("reflectivity");
-		location_use_fake_lighting = super.getUniformLocation("useFakeLighting");
 		location_sky_color = super.getUniformLocation("skyColor");
+		location_background_texture = super.getUniformLocation("backgroundTexture");
+		location_rTexture = super.getUniformLocation("rTexture");
+		location_gTexture = super.getUniformLocation("gTexture");
+		location_bTexture = super.getUniformLocation("bTexture");
+		location_blendmap = super.getUniformLocation("blendmap");
+	}
+	
+	public void loadTextures() {
+		super.loadInt(location_background_texture, 0);
+		super.loadInt(location_rTexture, 1);
+		super.loadInt(location_gTexture, 2);
+		super.loadInt(location_bTexture, 3);
+		super.loadInt(location_blendmap, 4);
 	}
 	
 	public void loadSkyColor(float r, float g, float b) {
 		super.loadVector(location_sky_color, new Vector3f(r,g,b));
-	}
-	
-	public void loadFakeLighting(boolean useFake) {
-		super.loadBoolean(location_use_fake_lighting, useFake);
 	}
 	
 	public void loadShineVariables(float damper, float reflectivity) {
@@ -79,42 +90,24 @@ public class StaticShader extends Shader {
 	}
 	
 	public void prepareForRender(Model model) {
-		GL11.glClearStencil(0);
-		
-		if(model.getTexture().isTransparent()) {
-			GL11.glDisable(GL11.GL_CULL_FACE);
-		} else {
-			GL11.glEnable(GL11.GL_CULL_FACE);
-			GL11.glCullFace(GL11.GL_BACK);
-		}
 		Matrix4f transformationMatrix = Maths.createTransformationMatrix(model.getPosition(), model.getRotation(), model.getScale());
 		loadTransformationMatrix(transformationMatrix);
-		
-		loadShineVariables(model.getTexture().getShineDamper(), model.getTexture().getReflectivity());
-		loadFakeLighting(model.getTexture().hasFakeLighting());
-		loadSkyColor(0.2f, 0.8f, 0.9f);
-		GL13.glActiveTexture(GL13.GL_TEXTURE0);
 		if(model.getTexture() != null) {
-			GL11.glBindTexture(GL11.GL_TEXTURE_2D, model.getTexture().getID());
+			loadShineVariables(model.getTexture().getShineDamper(), model.getTexture().getReflectivity());
 		}
-		
-		GL11.glEnable(GL11.GL_STENCIL_TEST);
-		GL11.glColor3i(0, 0, 0);
-		
-		GL11.glStencilFunc(GL11.GL_ALWAYS, 1, -1);
-		GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
-		
-		GL11.glDrawElements(GL11.GL_TRIANGLES, model.getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
-		
-		GL11.glStencilFunc(GL11.GL_NOTEQUAL, 1, -1);
-		GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
-		GL11.glLineWidth(4);
-		GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
-		
-		GL11.glDrawElements(GL11.GL_TRIANGLES, model.getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
-		
-		GL11.glDisable(GL11.GL_STENCIL_TEST);
-		GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
+		loadSkyColor(0.2f, 0.8f, 0.9f);
+		if(model.getTexture() != null) {
+			GL13.glActiveTexture(GL13.GL_TEXTURE0);
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, model.getTexture(0).getID());
+			GL13.glActiveTexture(GL13.GL_TEXTURE1);
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, model.getTexture(1).getID());
+			GL13.glActiveTexture(GL13.GL_TEXTURE2);
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, model.getTexture(2).getID());
+			GL13.glActiveTexture(GL13.GL_TEXTURE3);
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, model.getTexture(3).getID());
+			GL13.glActiveTexture(GL13.GL_TEXTURE4);
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, model.getTexture(4).getID());
+		}
+		loadTextures();
 	}
-
 }

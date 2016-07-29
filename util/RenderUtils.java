@@ -6,8 +6,11 @@ import java.nio.IntBuffer;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 
+
 public class RenderUtils {
 
+	public static final float PI = 3.141596f;
+	
 	public static FloatBuffer storeDataInFloatBuffer(float[] data) {
 		FloatBuffer buffer = BufferUtils.createFloatBuffer(data.length);
 		buffer.put(data);

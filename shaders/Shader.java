@@ -11,6 +11,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
+import graphics.Model;
 import util.RenderUtils;
 
 public abstract class Shader {
@@ -50,6 +51,7 @@ public abstract class Shader {
 		GL20.glDeleteProgram(programID);
 	}
 	
+	public abstract void prepareForRender(Model model);
 	protected abstract void getAllUniformLocations();
 	
 	protected int getUniformLocation(String uniformName) {
@@ -60,6 +62,10 @@ public abstract class Shader {
 	
 	protected void loadFloat(int location, float value) {
 		GL20.glUniform1f(location, value);
+	}
+	
+	protected void loadInt(int location, int value) {
+		GL20.glUniform1i(location, value);
 	}
 	
 	protected void loadVector(int location, Vector3f vector) {

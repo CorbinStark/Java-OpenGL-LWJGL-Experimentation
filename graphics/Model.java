@@ -24,11 +24,11 @@ import util.RenderUtils;
 
 public class Model {
 
-	private List<Integer> vaos = new ArrayList<Integer>();
+	private int vao;
 	private List<Integer> vbos = new ArrayList<Integer>();
-	private List<Integer> textures = new ArrayList<Integer>();
+	private List<Integer> textureIndexes = new ArrayList<Integer>();
 	private int vertexCount;
-	private ModelTexture texture;
+	private List<ModelTexture> textures = new ArrayList<ModelTexture>();
 	
 	private float[] vertices;
 	private float[] normals;
@@ -39,15 +39,44 @@ public class Model {
 	private Vector3f rotation;
 	private float scale;
 	
-	public Model(String filepath, ModelTexture texture) {
-		this.texture = texture;
-		int vaoID = GL30.glGenVertexArrays();
-		vaos.add(vaoID);
-		GL30.glBindVertexArray(vaoID);
+	private boolean multitex = false;
+	
+	public Model(String filepath, ModelTexture... textures) {
+		if(textures == null) {
+			this.textures.add(0, new ModelTexture("white"));
+		} else {			
+			for(int i = 0; i < textures.length; i++) {		
+				this.textures.add(i, textures[i]);
+			}
+		}
+		vao = GL30.glGenVertexArrays();
+		GL30.glBindVertexArray(vao);
 		loadOBJ(filepath);
 		bindIndicesBuffer(indices);
 		storeDataInAttributeList(0, 3, vertices);
 		storeDataInAttributeList(1, 2, textureCoords);
+		storeDataInAttributeList(2, 3, normals);
+		unbindVAO();
+		vertexCount = indices.length;
+	}
+	
+	public Model(float[] vertices, float[] textureCoords, float[] normals, int[] indices, ModelTexture... textures) {
+		if(textures == null) {
+			this.textures.add(0, new ModelTexture("white"));
+		} else {
+			for(int i = 0; i < textures.length; i++) {		
+				this.textures.add(i, textures[i]);
+			}
+		}
+		if(textures.length > 1) {
+			multitex = true;
+		}
+		vao = GL30.glGenVertexArrays();
+		GL30.glBindVertexArray(vao);
+		bindIndicesBuffer(indices);
+		storeDataInAttributeList(0, 3, vertices);
+		storeDataInAttributeList(1, 2, textureCoords);
+		storeDataInAttributeList(2, 3, normals);
 		unbindVAO();
 		vertexCount = indices.length;
 	}
@@ -74,17 +103,17 @@ public class Model {
 		GL30.glBindVertexArray(0);
 	}
 	
-	public void draw(StaticShader shader) {
-		GL30.glBindVertexArray(vaos.get(0));
+	public void bind() {
+		GL30.glBindVertexArray(vao);
 		GL20.glEnableVertexAttribArray(0);
 		GL20.glEnableVertexAttribArray(1);
-		Matrix4f transformationMatrix = Maths.createTransformationMatrix(position, rotation.x, rotation.y, rotation.z, scale);
-		shader.loadTransformationMatrix(transformationMatrix);
-		GL13.glActiveTexture(GL13.GL_TEXTURE0);
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.getID());
-		GL11.glDrawElements(GL11.GL_TRIANGLES, vertexCount, GL11.GL_UNSIGNED_INT, 0);
+		GL20.glEnableVertexAttribArray(2);
+	}
+	
+	public void unbind() {
 		GL20.glDisableVertexAttribArray(0);
 		GL20.glDisableVertexAttribArray(1);
+		GL20.glDisableVertexAttribArray(2);
 		unbindVAO();
 	}
 	
@@ -134,9 +163,9 @@ public class Model {
 				String[] vertex2 = currentLine[2].split("/");
 				String[] vertex3 = currentLine[3].split("/");
 				
-				processVertex(vertex1, indices,textures,normals,textureArray,normalsArray);
-				processVertex(vertex2, indices,textures,normals,textureArray,normalsArray);
-				processVertex(vertex3, indices,textures,normals,textureArray,normalsArray);
+				processVertex(vertex1,indices,textures,normals,textureArray,normalsArray);
+				processVertex(vertex2,indices,textures,normals,textureArray,normalsArray);
+				processVertex(vertex3,indices,textures,normals,textureArray,normalsArray);
 				line = reader.readLine();
 			}
 			reader.close();
@@ -194,6 +223,10 @@ public class Model {
 		rotation.y += dy;
 		rotation.z += dz;
 	}
+	
+	public void setTexture(ModelTexture texture) {
+		this.textures.set(0, texture);
+	}
 
 	public Vector3f getPosition() {
 		return position;
@@ -211,6 +244,14 @@ public class Model {
 		this.rotation = rotation;
 	}
 
+	public ModelTexture getTexture() {
+		return textures.get(0);
+	}
+	
+	public ModelTexture getTexture(int index) {
+		return textures.get(index);
+	}
+	
 	public float getScale() {
 		return scale;
 	}
@@ -219,14 +260,32 @@ public class Model {
 		this.scale = scale;
 	}
 	
+	public float[] getVertices() {
+		return vertices;
+	}
+
+	public float[] getNormals() {
+		return normals;
+	}
+
+	public float[] getTextureCoords() {
+		return textureCoords;
+	}
+
+	public int[] getIndices() {
+		return indices;
+	}
+
+	public int getVertexCount() {
+		return vertexCount;
+	}
+	
 	public void cleanup() {
-		for(int vao:vaos) {
-			GL30.glDeleteVertexArrays(vao);
-		}
+		GL30.glDeleteVertexArrays(vao);
 		for(int vbo:vbos) {
 			GL15.glDeleteBuffers(vbo);
 		}
-		for(int texture:textures) {
+		for(int texture:textureIndexes) {
 			GL11.glDeleteTextures(texture);
 		}
 	}

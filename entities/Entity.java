@@ -18,10 +18,6 @@ public class Entity {
 		model.setScale(scale);
 	}
 	
-	public void draw(StaticShader shader) {
-		model.draw(shader);
-	}
-	
 	public void update() {
 		
 	}
@@ -32,6 +28,10 @@ public class Entity {
 	
 	public void increaseRotation(float dx, float dy, float dz) {
 		model.increaseRotation(dx, dy, dz);
+	}
+	
+	public Model getModel() {
+		return model;
 	}
 	
 	public void cleanup() {

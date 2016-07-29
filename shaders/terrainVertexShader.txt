@@ -6,16 +6,15 @@ in vec3 normal;
 
 out vec2 passTextCoords;
 out vec3 surfaceNormal;
-out vec3 toCamera;
 out vec3 toLight;
+out vec3 toCamera;
+
 out float visibility;
 
 uniform mat4 transformationMatrix;
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 uniform vec3 lightPosition;
-
-uniform float useFakeLighting;
 
 const float density = 0.002;
 const float gradient = 4.2;
@@ -27,17 +26,12 @@ void main(void) {
 	gl_Position = positionRelativeToCamera * projectionMatrix;
 	passTextCoords = textureCoords;
 	
-	vec3 actualNormal = normal;
-	if(useFakeLighting > 0.5) {
-		actualNormal = vec3(0.0, 1.0, 0.0);
-	}
-	
-	surfaceNormal =  (vec4(actualNormal, 0.0) * transformationMatrix).xyz;
+	surfaceNormal = (transformationMatrix * vec4(normal, 0.0)).xyz;
 	toLight = lightPosition - worldPosition.xyz;
 	toCamera = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz - worldPosition.xyz;
 	
 	float distance = length(positionRelativeToCamera.xyz);
-	visibility = exp(-pow((distance * density), gradient));
+	visibility = exp(-pow((distance*density), gradient));
 	visibility = clamp(visibility, 0.0, 1.0);
 
 }
